@@ -686,13 +686,14 @@ static void leocc_update_model(struct sock *sk, const struct rate_sample *rs)
 	leocc_update_gains(sk);
 }
 
-__bpf_kfunc static void leocc_main(struct sock *sk, const struct rate_sample *rs)
+__bpf_kfunc static void leocc_main(struct sock *sk, u32 ack, int flag, const struct rate_sample *rs)
 {
 	struct leocc *leocc = inet_csk_ca(sk);
 	if (global_reconfiguration_trigger && !leocc->local_reconfiguration_trigger) {
 		leocc->local_reconfiguration_trigger = 1;
+		
 	}
-
+	pr_info("[LEOCC] LeoCC global reconfiguration triggered %u \n", global_reconfiguration_trigger);
 	if (leocc->mode == LEOCC_DYNAMIC_CRUISE && !before(rs->prior_delivered, leocc->next_rtt_delivered)) {	
 		leocc->p_post_bw = leocc->p_post_bw + var_Q;
 		leocc->kalman_gain_bw = leocc->p_post_bw * LEOCC_UNIT / (leocc->p_post_bw + var_R);
@@ -849,8 +850,7 @@ static int __init leocc_register(void)
 	BUILD_BUG_ON(sizeof(struct leocc) > ICSK_CA_PRIV_SIZE);
 
 	ret = register_btf_kfunc_id_set(BPF_PROG_TYPE_STRUCT_OPS, &leocc_kfunc_set);
-	if (ret < 0)
-		return ret;
+	printk(KERN_INFO "LEOCC: register_btf_kfunc_id_set returned %d\n", ret);
 
 	if (netlink_init() != 0) {
         printk(KERN_ERR "Failed to initialize Netlink for LEOCC.\n");

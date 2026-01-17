@@ -98,6 +98,7 @@ int main(int argc, char *argv[])
     while (fgets(buffer, sizeof(buffer), ping_output)) {
         int rtt_value_final = 0;
         char *rtt_str = strstr(buffer, "time=");
+        
         if (rtt_str) {
             rtt_str += strlen("time=");
             char *rtt_end = strstr(rtt_str, " ms");
@@ -109,7 +110,7 @@ int main(int argc, char *argv[])
 
         gettimeofday(&now, NULL);
         double diff_in_ms = (now.tv_sec - last_time.tv_sec) * 1000.0 + (now.tv_usec - last_time.tv_usec) / 1000.0;
-
+        
         if (diff_in_ms > THRESHOLD) {
             memset(&data, 0, sizeof(data));
             data.sec = (u64)now.tv_sec;
@@ -117,6 +118,8 @@ int main(int argc, char *argv[])
             snprintf(data.rtt_value_microseconds, sizeof(data.rtt_value_microseconds), "%d", rtt_value_final);
             data.is_reconfig = 1;
             send_rtt_to_kernel(sock_fd, &data);
+            printf("Sent reconfiguration RTT: %d us diff over thresh at time %lu.%lu \n", rtt_value_final, now.tv_sec, now.tv_usec);
+            fflush(stdout);
         } else if (rtt_value_final > 0) {
             memset(&data, 0, sizeof(data));
             data.sec = (u64)now.tv_sec;

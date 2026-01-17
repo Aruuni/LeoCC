@@ -691,7 +691,7 @@ static void leocc_update_model(struct sock *sk, const struct rate_sample *rs)
 	leocc_update_gains(sk);
 }
 
-__bpf_kfunc static void leocc_main(struct sock *sk, const struct rate_sample *rs)
+__bpf_kfunc static void leocc_main(struct sock *sk, u32 ack, int flag, const struct rate_sample *rs)
 {
 	struct leocc *leocc = inet_csk_ca(sk);
 	u32 delta_since_start = (tcp_jiffies32 - init_stamp) * 1000 / HZ;
@@ -861,8 +861,7 @@ static int __init leocc_register(void)
 	BUILD_BUG_ON(sizeof(struct leocc) > ICSK_CA_PRIV_SIZE);
 
 	ret = register_btf_kfunc_id_set(BPF_PROG_TYPE_STRUCT_OPS, &leocc_kfunc_set);
-	if (ret < 0)
-		return ret;
+	pr_err("leocc: tcp_register_congestion_control ret=%d\n", ret);
 	return tcp_register_congestion_control(&leocc_cong_ops);
 }
 
